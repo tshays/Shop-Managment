@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import Login from "./components/Login";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
@@ -12,33 +14,54 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  // For demo purposes, we'll use admin role. In real app, this would come from authentication
-  const userRole = 'admin' as 'admin' | 'seller';
+const AppContent = () => {
+  const { user, userProfile, loading } = useAuth();
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !userProfile) {
+    return <Login />;
+  }
+
+  return (
+    <BrowserRouter>
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar userRole={userProfile.role} />
+        <main className="flex-1 p-6 ml-64">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/sales" element={<Sales />} />
+            <Route path="/reports" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Reports Page</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
+            <Route path="/users" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Users Management</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
+            <Route path="/settings" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Settings</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
+            <Route path="/receipts" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Receipts</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+      </div>
+    </BrowserRouter>
+  );
+};
+
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <div className="flex min-h-screen bg-gray-50">
-            <Sidebar userRole={userRole} />
-            <main className="flex-1 p-6 ml-64">
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/sales" element={<Sales />} />
-                <Route path="/reports" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Reports Page</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
-                <Route path="/users" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Users Management</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
-                <Route path="/settings" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Settings</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
-                <Route path="/receipts" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Receipts</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
-          </div>
-        </BrowserRouter>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

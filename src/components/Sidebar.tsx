@@ -8,8 +8,10 @@ import {
   Settings, 
   User,
   Receipt,
-  Database
+  Database,
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
   userRole: 'admin' | 'seller';
@@ -17,6 +19,7 @@ interface SidebarProps {
 
 const Sidebar = ({ userRole }: SidebarProps) => {
   const location = useLocation();
+  const { logout, userProfile } = useAuth();
 
   const adminMenuItems = [
     { icon: Database, label: 'Dashboard', path: '/' },
@@ -35,6 +38,14 @@ const Sidebar = ({ userRole }: SidebarProps) => {
   ];
 
   const menuItems = userRole === 'admin' ? adminMenuItems : sellerMenuItems;
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <div className="bg-slate-900 text-white w-64 min-h-screen p-4">
@@ -63,11 +74,19 @@ const Sidebar = ({ userRole }: SidebarProps) => {
         })}
       </nav>
 
-      <div className="absolute bottom-4 left-4 right-4">
+      <div className="absolute bottom-4 left-4 right-4 space-y-2">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center space-x-3 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+        >
+          <LogOut size={20} />
+          <span>Logout</span>
+        </button>
+        
         <div className="flex items-center space-x-3 px-4 py-3 bg-slate-800 rounded-lg">
           <User size={20} className="text-slate-400" />
           <div>
-            <p className="text-sm font-medium">John Doe</p>
+            <p className="text-sm font-medium">{userProfile?.name || 'User'}</p>
             <p className="text-xs text-slate-400 capitalize">{userRole}</p>
           </div>
         </div>
