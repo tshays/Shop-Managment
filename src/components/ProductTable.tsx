@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, Package, Plus, Edit, Trash2 } from 'lucide-react';
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AddProductModal from './AddProductModal';
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: string;
@@ -23,6 +23,7 @@ const ProductTable = () => {
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const { userProfile } = useAuth();
+  const { toast } = useToast();
 
   const categories = [
     'Mobiles',
@@ -42,15 +43,22 @@ const ProductTable = () => {
   }, []);
 
   const fetchProducts = async () => {
+    console.log('Fetching products...');
     try {
       const productsSnapshot = await getDocs(collection(db, 'products'));
       const productsData = productsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Product[];
+      console.log('Products fetched:', productsData);
       setProducts(productsData);
     } catch (error) {
       console.error('Error fetching products:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load products",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -58,7 +66,11 @@ const ProductTable = () => {
 
   const handleDeleteProduct = async (productId: string) => {
     if (!userProfile || userProfile.role !== 'admin') {
-      alert('Only admins can delete products');
+      toast({
+        title: "Access Denied",
+        description: "Only admins can delete products",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -66,12 +78,24 @@ const ProductTable = () => {
       try {
         await deleteDoc(doc(db, 'products', productId));
         setProducts(products.filter(p => p.id !== productId));
-        alert('Product deleted successfully');
+        toast({
+          title: "Success",
+          description: "Product deleted successfully"
+        });
       } catch (error) {
         console.error('Error deleting product:', error);
-        alert('Error deleting product');
+        toast({
+          title: "Error",
+          description: "Failed to delete product",
+          variant: "destructive"
+        });
       }
     }
+  };
+
+  const handleProductAdded = () => {
+    console.log('Product added, refreshing list...');
+    fetchProducts();
   };
 
   const filteredProducts = products.filter(product => {
@@ -104,7 +128,10 @@ const ProductTable = () => {
             
             {userProfile?.role === 'admin' && (
               <button 
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={() => {
+                  console.log('Opening add product modal...');
+                  setIsAddModalOpen(true);
+                }}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
               >
                 <Plus size={16} className="mr-2" />
@@ -166,20 +193,20 @@ const ProductTable = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-900">
-                    ${product.price}
+                    ${product.price?.toFixed(2) || '0.00'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-900">
-                    {product.stock}
+                    {product.stock || 0}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs rounded-full ${
-                      product.stock > 10 
+                      (product.stock || 0) > 10 
                         ? 'bg-green-100 text-green-800' 
-                        : product.stock > 0 
+                        : (product.stock || 0) > 0 
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-red-100 text-red-800'
                     }`}>
-                      {product.stock > 10 ? 'In Stock' : product.stock > 0 ? 'Low Stock' : 'Out of Stock'}
+                      {(product.stock || 0) > 10 ? 'In Stock' : (product.stock || 0) > 0 ? 'Low Stock' : 'Out of Stock'}
                     </span>
                   </td>
                   {userProfile?.role === 'admin' && (
@@ -205,15 +232,18 @@ const ProductTable = () => {
 
         {filteredProducts.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            No products found matching your criteria.
+            {products.length === 0 ? 'No products found. Add your first product!' : 'No products found matching your criteria.'}
           </div>
         )}
       </div>
 
       <AddProductModal 
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onProductAdded={fetchProducts}
+        onClose={() => {
+          console.log('Closing add product modal...');
+          setIsAddModalOpen(false);
+        }}
+        onProductAdded={handleProductAdded}
       />
     </>
   );

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { useToast } from "@/hooks/use-toast";
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ const AddProductModal = ({ isOpen, onClose, onProductAdded }: AddProductModalPro
     stock: 0
   });
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const categories = [
     'Mobiles',
@@ -35,23 +37,81 @@ const AddProductModal = ({ isOpen, onClose, onProductAdded }: AddProductModalPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form data
+    if (!formData.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Product name is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.category) {
+      toast({
+        title: "Validation Error", 
+        description: "Please select a category",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.purchasePrice <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Purchase price must be greater than 0",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.interestPercent < 0) {
+      toast({
+        title: "Validation Error",
+        description: "Interest percentage cannot be negative",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.stock < 0) {
+      toast({
+        title: "Validation Error",
+        description: "Stock quantity cannot be negative",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
       const sellingPrice = formData.purchasePrice + (formData.purchasePrice * formData.interestPercent / 100);
       
-      await addDoc(collection(db, 'products'), {
+      console.log('Adding product with data:', {
         name: formData.name,
         category: formData.category,
         purchasePrice: formData.purchasePrice,
         interestPercent: formData.interestPercent,
         price: sellingPrice,
-        stock: formData.stock,
-        createdAt: new Date()
+        stock: formData.stock
       });
 
-      onProductAdded();
-      onClose();
+      await addDoc(collection(db, 'products'), {
+        name: formData.name.trim(),
+        category: formData.category,
+        purchasePrice: formData.purchasePrice,
+        interestPercent: formData.interestPercent,
+        price: sellingPrice,
+        stock: formData.stock,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      console.log('Product added successfully');
+
+      // Reset form
       setFormData({
         name: '',
         category: '',
@@ -59,10 +119,23 @@ const AddProductModal = ({ isOpen, onClose, onProductAdded }: AddProductModalPro
         interestPercent: 0,
         stock: 0
       });
-      alert('Product added successfully!');
+
+      // Close modal and refresh products
+      onClose();
+      onProductAdded();
+
+      toast({
+        title: "Success",
+        description: "Product added successfully!"
+      });
+
     } catch (error) {
       console.error('Error adding product:', error);
-      alert('Error adding product');
+      toast({
+        title: "Error",
+        description: "Failed to add product. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -72,7 +145,7 @@ const AddProductModal = ({ isOpen, onClose, onProductAdded }: AddProductModalPro
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Add New Product</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -83,20 +156,21 @@ const AddProductModal = ({ isOpen, onClose, onProductAdded }: AddProductModalPro
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Product Name
+              Product Name *
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter product name"
               required
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category
+              Category *
             </label>
             <select
               value={formData.category}
@@ -115,15 +189,16 @@ const AddProductModal = ({ isOpen, onClose, onProductAdded }: AddProductModalPro
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Purchase Price ($)
+              Purchase Price ($) *
             </label>
             <input
               type="number"
-              value={formData.purchasePrice}
-              onChange={(e) => setFormData({ ...formData, purchasePrice: Number(e.target.value) })}
+              value={formData.purchasePrice || ''}
+              onChange={(e) => setFormData({ ...formData, purchasePrice: parseFloat(e.target.value) || 0 })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               min="0"
               step="0.01"
+              placeholder="0.00"
               required
             />
           </div>
@@ -134,45 +209,47 @@ const AddProductModal = ({ isOpen, onClose, onProductAdded }: AddProductModalPro
             </label>
             <input
               type="number"
-              value={formData.interestPercent}
-              onChange={(e) => setFormData({ ...formData, interestPercent: Number(e.target.value) })}
+              value={formData.interestPercent || ''}
+              onChange={(e) => setFormData({ ...formData, interestPercent: parseFloat(e.target.value) || 0 })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               min="0"
               step="0.1"
-              required
+              placeholder="0.0"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Stock Quantity
+              Stock Quantity *
             </label>
             <input
               type="number"
-              value={formData.stock}
-              onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
+              value={formData.stock || ''}
+              onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               min="0"
+              placeholder="0"
               required
             />
           </div>
 
-          <div className="text-sm text-gray-600">
-            Selling Price: ${(formData.purchasePrice + (formData.purchasePrice * formData.interestPercent / 100)).toFixed(2)}
+          <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
+            <strong>Selling Price: ${(formData.purchasePrice + (formData.purchasePrice * formData.interestPercent / 100)).toFixed(2)}</strong>
           </div>
 
           <div className="flex space-x-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Adding...' : 'Add Product'}
             </button>
