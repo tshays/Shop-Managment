@@ -1,12 +1,56 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { TrendingUp, Package, Users, Receipt } from 'lucide-react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 const DashboardStats = () => {
-  const stats = [
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    productsSold: 0,
+    activeUsers: 0,
+    receiptsGenerated: 0
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch products
+        const productsSnapshot = await getDocs(collection(db, 'products'));
+        const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Fetch sales
+        const salesSnapshot = await getDocs(collection(db, 'sales'));
+        const sales = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Fetch users
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Calculate stats
+        const totalRevenue = sales.reduce((sum, sale) => sum + (sale.totalPrice || 0), 0);
+        const productsSold = sales.reduce((sum, sale) => sum + (sale.quantity || 0), 0);
+        const activeUsers = users.length;
+        const receiptsGenerated = sales.length;
+        
+        setStats({
+          totalRevenue,
+          productsSold,
+          activeUsers,
+          receiptsGenerated
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const statsData = [
     {
       title: 'Total Revenue',
-      value: '$45,230',
+      value: `$${stats.totalRevenue.toLocaleString()}`,
       change: '+12.5%',
       icon: TrendingUp,
       color: 'bg-green-500',
@@ -14,7 +58,7 @@ const DashboardStats = () => {
     },
     {
       title: 'Products Sold',
-      value: '1,234',
+      value: stats.productsSold.toLocaleString(),
       change: '+8.2%',
       icon: Package,
       color: 'bg-blue-500',
@@ -22,7 +66,7 @@ const DashboardStats = () => {
     },
     {
       title: 'Active Users',
-      value: '56',
+      value: stats.activeUsers.toString(),
       change: '+2.1%',
       icon: Users,
       color: 'bg-purple-500',
@@ -30,7 +74,7 @@ const DashboardStats = () => {
     },
     {
       title: 'Receipts Generated',
-      value: '892',
+      value: stats.receiptsGenerated.toString(),
       change: '+15.3%',
       icon: Receipt,
       color: 'bg-orange-500',
@@ -40,7 +84,7 @@ const DashboardStats = () => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      {stats.map((stat, index) => (
+      {statsData.map((stat, index) => (
         <div key={index} className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>

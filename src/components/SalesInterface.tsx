@@ -1,25 +1,96 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Receipt, User } from 'lucide-react';
+import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
+  category: string;
+}
 
 const SalesInterface = () => {
   const [selectedProduct, setSelectedProduct] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [buyerName, setBuyerName] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { userProfile } = useAuth();
 
-  const products = [
-    { id: 1, name: 'iPhone 14 Pro', price: 920, stock: 25 },
-    { id: 2, name: 'Samsung Galaxy S23', price: 826, stock: 15 },
-    { id: 3, name: 'MacBook Pro 16"', price: 2240, stock: 8 },
-    { id: 4, name: 'Phone Case - Clear', price: 20, stock: 50 }
-  ];
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const productsSnapshot = await getDocs(collection(db, 'products'));
+        const productsData = productsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Product[];
+        setProducts(productsData);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+    };
 
-  const handleSale = () => {
-    console.log('Processing sale:', { selectedProduct, quantity, buyerName });
-    // Here you would integrate with your backend to process the sale
+    fetchProducts();
+  }, []);
+
+  const handleSale = async () => {
+    if (!selectedProduct || !userProfile) return;
+    
+    setLoading(true);
+    try {
+      const selectedProductData = products.find(p => p.id === selectedProduct);
+      if (!selectedProductData) return;
+
+      const totalPrice = selectedProductData.price * quantity;
+
+      // Add sale record to Firebase
+      await addDoc(collection(db, 'sales'), {
+        productId: selectedProduct,
+        productName: selectedProductData.name,
+        quantity,
+        unitPrice: selectedProductData.price,
+        totalPrice,
+        buyerName: buyerName || 'Walk-in Customer',
+        sellerId: userProfile.uid,
+        sellerName: userProfile.name,
+        timestamp: new Date(),
+        date: new Date().toISOString().split('T')[0]
+      });
+
+      // Update product stock
+      const productRef = doc(db, 'products', selectedProduct);
+      await updateDoc(productRef, {
+        stock: selectedProductData.stock - quantity
+      });
+
+      // Reset form
+      setSelectedProduct('');
+      setQuantity(1);
+      setBuyerName('');
+
+      // Refresh products to show updated stock
+      const productsSnapshot = await getDocs(collection(db, 'products'));
+      const productsData = productsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Product[];
+      setProducts(productsData);
+
+      alert('Sale processed successfully!');
+    } catch (error) {
+      console.error('Error processing sale:', error);
+      alert('Error processing sale. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const selectedProductData = products.find(p => p.id.toString() === selectedProduct);
+  const selectedProductData = products.find(p => p.id === selectedProduct);
   const totalPrice = selectedProductData ? selectedProductData.price * quantity : 0;
 
   return (
@@ -105,18 +176,11 @@ const SalesInterface = () => {
         <div className="flex space-x-3">
           <button
             onClick={handleSale}
-            disabled={!selectedProduct}
+            disabled={!selectedProduct || loading}
             className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
           >
             <ShoppingCart size={16} className="mr-2" />
-            Process Sale
-          </button>
-          <button
-            disabled={!selectedProduct}
-            className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-          >
-            <Receipt size={16} className="mr-2" />
-            Generate Receipt
+            {loading ? 'Processing...' : 'Process Sale'}
           </button>
         </div>
       </div>

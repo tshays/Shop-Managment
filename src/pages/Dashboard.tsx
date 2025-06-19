@@ -1,7 +1,6 @@
 
 import React from 'react';
 import DashboardStats from '../components/DashboardStats';
-import SalesChart from '../components/SalesChart';
 import ProductTable from '../components/ProductTable';
 import SalesInterface from '../components/SalesInterface';
 
@@ -15,16 +14,14 @@ const Dashboard = () => {
       
       <DashboardStats />
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <SalesChart />
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <SalesInterface />
         </div>
+        <div>
+          <ProductTable />
+        </div>
       </div>
-      
-      <ProductTable />
     </div>
   );
 };
