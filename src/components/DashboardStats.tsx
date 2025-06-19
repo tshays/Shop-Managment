@@ -27,9 +27,17 @@ const DashboardStats = () => {
         const usersSnapshot = await getDocs(collection(db, 'users'));
         const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        // Calculate stats
-        const totalRevenue = sales.reduce((sum, sale) => sum + (sale.totalPrice || 0), 0);
-        const productsSold = sales.reduce((sum, sale) => sum + (sale.quantity || 0), 0);
+        // Calculate stats with proper null checking
+        const totalRevenue = sales.reduce((sum, sale: any) => {
+          const saleTotal = sale.totalPrice || sale.total || 0;
+          return sum + (typeof saleTotal === 'number' ? saleTotal : 0);
+        }, 0);
+        
+        const productsSold = sales.reduce((sum, sale: any) => {
+          const saleQuantity = sale.quantity || 1;
+          return sum + (typeof saleQuantity === 'number' ? saleQuantity : 0);
+        }, 0);
+        
         const activeUsers = users.length;
         const receiptsGenerated = sales.length;
         

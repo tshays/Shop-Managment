@@ -73,7 +73,9 @@ const ProductTable = () => {
   };
 
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    // Add null safety for product.name
+    const productName = product.name || '';
+    const matchesSearch = productName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === '' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
