@@ -36,7 +36,7 @@ const AppContent = () => {
     <BrowserRouter>
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar userRole={userProfile.role} />
-        <main className="flex-1 p-6 ml-64">
+        <main className="flex-1 p-4 sm:p-6 lg:ml-64">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/products" element={<Products />} />
