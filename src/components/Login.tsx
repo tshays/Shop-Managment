@@ -2,12 +2,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogIn, User, Lock } from 'lucide-react';
+import SignUp from './SignUp';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,6 +26,14 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  if (showSignUp) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <SignUp onSwitchToLogin={() => setShowSignUp(false)} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -83,6 +93,18 @@ const Login = () => {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <button
+              onClick={() => setShowSignUp(true)}
+              className="text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Sign Up
+            </button>
+          </p>
+        </div>
 
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>Demo Accounts:</p>

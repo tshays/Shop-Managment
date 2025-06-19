@@ -10,6 +10,7 @@ import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Sales from "./pages/Sales";
+import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,7 +42,7 @@ const AppContent = () => {
             <Route path="/" element={<Dashboard />} />
             <Route path="/products" element={<Products />} />
             <Route path="/sales" element={<Sales />} />
-            <Route path="/reports" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Reports Page</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="/users" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Users Management</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
             <Route path="/settings" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Settings</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
             <Route path="/receipts" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Receipts</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
