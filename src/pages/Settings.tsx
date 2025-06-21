@@ -4,12 +4,12 @@ import { Settings as SettingsIcon, Sun, Moon, DollarSign } from 'lucide-react';
 
 const Settings = () => {
   const [darkMode, setDarkMode] = useState(false);
-  const [currency, setCurrency] = useState('$');
+  const [currency, setCurrency] = useState('Br');
 
   useEffect(() => {
     // Load saved settings from localStorage
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-    const savedCurrency = localStorage.getItem('currency') || '$';
+    const savedCurrency = localStorage.getItem('currency') || 'Br';
     
     setDarkMode(savedDarkMode);
     setCurrency(savedCurrency);
@@ -100,6 +100,7 @@ const Settings = () => {
               onChange={(e) => handleCurrencyChange(e.target.value)}
               className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
+              <option value="Br">Ethiopian Birr (Br)</option>
               <option value="$">Dollar ($)</option>
               <option value="₹">Rupee (₹)</option>
               <option value="€">Euro (€)</option>
@@ -113,7 +114,6 @@ const Settings = () => {
               <option value="₽">Ruble (₽)</option>
               <option value="₩">Won (₩)</option>
               <option value="¢">Cent (¢)</option>
-              <option value="Br">Birr (Br)</option>
             </select>
           </div>
         </div>

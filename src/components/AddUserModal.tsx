@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { doc, setDoc } from 'firebase/firestore';
@@ -46,12 +45,16 @@ const AddUserModal = ({ isOpen, onClose, onUserAdded }: AddUserModalProps) => {
     setLoading(true);
 
     try {
+      console.log('Creating user with email:', formData.email);
+      
       // Create user account
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
         formData.password
       );
+
+      console.log('User created successfully:', userCredential.user.uid);
 
       // Add user profile to Firestore using the user's UID as document ID
       await setDoc(doc(db, 'users', userCredential.user.uid), {
@@ -61,6 +64,8 @@ const AddUserModal = ({ isOpen, onClose, onUserAdded }: AddUserModalProps) => {
         role: formData.role,
         createdAt: new Date()
       });
+
+      console.log('User profile saved to Firestore');
 
       // Reset form
       setFormData({
@@ -75,7 +80,7 @@ const AddUserModal = ({ isOpen, onClose, onUserAdded }: AddUserModalProps) => {
 
       toast({
         title: "Success",
-        description: "User created successfully!"
+        description: "User created successfully! They can now log in with their credentials."
       });
 
     } catch (error: any) {

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 interface CurrencyContextType {
   currency: string;
   setCurrency: (currency: string) => void;
+  formatCurrency: (amount: number) => string;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
@@ -17,11 +18,11 @@ export const useCurrency = () => {
 };
 
 export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currency, setCurrencyState] = useState('$');
+  const [currency, setCurrencyState] = useState('Br');
 
   useEffect(() => {
-    // Load saved currency from localStorage
-    const savedCurrency = localStorage.getItem('currency') || '$';
+    // Load saved currency from localStorage, default to Birr
+    const savedCurrency = localStorage.getItem('currency') || 'Br';
     setCurrencyState(savedCurrency);
 
     // Listen for currency changes from settings
@@ -41,9 +42,14 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('currency', newCurrency);
   };
 
+  const formatCurrency = (amount: number) => {
+    return `${currency}${amount.toFixed(2)}`;
+  };
+
   const value = {
     currency,
     setCurrency,
+    formatCurrency,
   };
 
   return (

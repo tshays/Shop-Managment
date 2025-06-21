@@ -48,15 +48,15 @@ export const generateSaleReceipt = (saleData: SaleData, userProfile: any) => {
   // Product details
   doc.text(saleData.productName, 20, 160);
   doc.text(saleData.quantity.toString(), 80, 160);
-  doc.text(`$${saleData.unitPrice.toFixed(2)}`, 110, 160);
-  doc.text(`$${saleData.totalPrice.toFixed(2)}`, 150, 160);
+  doc.text(`Br${saleData.unitPrice.toFixed(2)}`, 110, 160);
+  doc.text(`Br${saleData.totalPrice.toFixed(2)}`, 150, 160);
   
   // Total line
   doc.line(20, 170, 190, 170);
   
   // Total amount
   doc.setFontSize(14);
-  doc.text(`TOTAL AMOUNT: $${saleData.totalPrice.toFixed(2)}`, 105, 185, { align: 'center' });
+  doc.text(`TOTAL AMOUNT: Br${saleData.totalPrice.toFixed(2)}`, 105, 185, { align: 'center' });
   
   // Footer
   doc.setFontSize(10);
