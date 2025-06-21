@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { doc, setDoc } from 'firestore/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { useToast } from "@/hooks/use-toast";
