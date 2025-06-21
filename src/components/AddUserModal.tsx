@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { collection, addDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firestore/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { useToast } from "@/hooks/use-toast";
@@ -53,8 +53,8 @@ const AddUserModal = ({ isOpen, onClose, onUserAdded }: AddUserModalProps) => {
         formData.password
       );
 
-      // Add user profile to Firestore
-      await addDoc(collection(db, 'users'), {
+      // Add user profile to Firestore using the user's UID as document ID
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
         uid: userCredential.user.uid,
         name: formData.name.trim(),
         email: formData.email.trim(),
