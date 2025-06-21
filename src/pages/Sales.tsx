@@ -1,7 +1,7 @@
 
 import React from 'react';
 import SalesInterface from '../components/SalesInterface';
-import SalesChart from '../components/SalesChart';
+import DailySalesRecords from '../components/DailySalesRecords';
 
 const Sales = () => {
   return (
@@ -13,7 +13,7 @@ const Sales = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SalesInterface />
-        <SalesChart />
+        <DailySalesRecords />
       </div>
     </div>
   );
