@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, Package, Plus, Edit, Trash2 } from 'lucide-react';
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AddProductModal from './AddProductModal';
+import EditProductModal from './EditProductModal';
 import { useToast } from "@/hooks/use-toast";
 
 interface Product {

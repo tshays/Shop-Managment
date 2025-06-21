@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,10 +6,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Login from "./components/Login";
 import Sidebar from "./components/Sidebar";
+import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Sales from "./pages/Sales";
 import Reports from "./pages/Reports";
+import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,11 +40,12 @@ const AppContent = () => {
         <Sidebar userRole={userProfile.role} />
         <main className="flex-1 p-4 sm:p-6 lg:ml-64">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/products" element={<Products />} />
             <Route path="/sales" element={<Sales />} />
             <Route path="/reports" element={<Reports />} />
-            <Route path="/users" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Users Management</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
+            <Route path="/users" element={<Users />} />
             <Route path="/settings" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Settings</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
             <Route path="/receipts" element={<div className="text-center py-12"><h1 className="text-2xl font-bold">Receipts</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
             <Route path="*" element={<NotFound />} />

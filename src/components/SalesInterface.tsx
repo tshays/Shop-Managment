@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Receipt, User } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { generateSaleReceipt } from './PDFGenerator';
 
 interface Product {
   id: string;
@@ -47,6 +47,7 @@ const SalesInterface = () => {
       if (!selectedProductData) return;
 
       const totalPrice = selectedProductData.price * quantity;
+      const saleTimestamp = new Date();
 
       // Add sale record to Firebase
       await addDoc(collection(db, 'sales'), {
@@ -58,8 +59,8 @@ const SalesInterface = () => {
         buyerName: buyerName || 'Walk-in Customer',
         sellerId: userProfile.uid,
         sellerName: userProfile.name,
-        timestamp: new Date(),
-        date: new Date().toISOString().split('T')[0]
+        timestamp: saleTimestamp,
+        date: saleTimestamp.toISOString().split('T')[0]
       });
 
       // Update product stock
@@ -67,6 +68,16 @@ const SalesInterface = () => {
       await updateDoc(productRef, {
         stock: selectedProductData.stock - quantity
       });
+
+      // Generate PDF receipt
+      generateSaleReceipt({
+        productName: selectedProductData.name,
+        quantity,
+        unitPrice: selectedProductData.price,
+        totalPrice,
+        buyerName: buyerName || 'Walk-in Customer',
+        timestamp: saleTimestamp
+      }, userProfile);
 
       // Reset form
       setSelectedProduct('');
@@ -81,7 +92,7 @@ const SalesInterface = () => {
       })) as Product[];
       setProducts(productsData);
 
-      alert('Sale processed successfully!');
+      alert('Sale processed successfully and receipt generated!');
     } catch (error) {
       console.error('Error processing sale:', error);
       alert('Error processing sale. Please try again.');
