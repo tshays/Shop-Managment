@@ -43,7 +43,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const formatCurrency = (amount: number) => {
-    return `${currency}${amount.toFixed(2)}`;
+    return `birr{currency}birr{amount.toFixed(2)}`;
   };
 
   const value = {
