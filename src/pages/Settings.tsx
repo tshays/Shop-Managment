@@ -84,38 +84,8 @@ const Settings = () => {
             </button>
           </div>
 
-          {/* Currency Selection */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <DollarSign className="text-green-600 mr-3" size={20} />
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white">Currency</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Choose your preferred currency symbol
-                </p>
-              </div>
-            </div>
-            <select
-              value={currency}
-              onChange={(e) => handleCurrencyChange(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="Br">Ethiopian Birr (Br)</option>
-              <option value="$">Dollar ($)</option>
-              <option value="₹">Rupee (₹)</option>
-              <option value="€">Euro (€)</option>
-              <option value="£">Pound (£)</option>
-              <option value="¥">Yen (¥)</option>
-              <option value="₦">Naira (₦)</option>
-              <option value="R">Rand (R)</option>
-              <option value="₨">Pakistani Rupee (₨)</option>
-              <option value="৳">Taka (৳)</option>
-              <option value="₪">Shekel (₪)</option>
-              <option value="₽">Ruble (₽)</option>
-              <option value="₩">Won (₩)</option>
-              <option value="¢">Cent (¢)</option>
-            </select>
-          </div>
+        
+           
         </div>
       </div>
     </div>
