@@ -40,7 +40,7 @@ const Login = () => {
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900"> Electronics Shop Managment</h1>
-          <p className="text-gray-600 mt-2">Electronics Store Management</p> </div>
+           </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
