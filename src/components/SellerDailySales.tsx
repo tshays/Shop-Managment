@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Printer, Download, User } from 'lucide-react';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
@@ -57,13 +56,13 @@ const SellerDailySales = () => {
       );
       const salesSnapshot = await getDocs(salesQuery);
       
-      // Filter for today's sales
+      // Filter for today's sales with proper typing
       const todaysSales = salesSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .map(doc => ({ id: doc.id, ...doc.data() } as SaleRecord))
         .filter(sale => {
           const saleDate = sale.timestamp?.toDate ? sale.timestamp.toDate() : new Date(sale.timestamp);
           return saleDate >= startOfDay && saleDate <= endOfDay;
-        }) as SaleRecord[];
+        });
 
       setSalesRecords(todaysSales);
     } catch (error) {
