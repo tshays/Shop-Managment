@@ -106,11 +106,6 @@ const Login = () => {
           </p>
         </div>
 
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>Demo Accounts:</p>
-          <p>Admin: admin@demo.com / admin123</p>
-          <p>Seller: seller@demo.com / seller123</p>
-        </div>
       </div>
     </div>
   );
