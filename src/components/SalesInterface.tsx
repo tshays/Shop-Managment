@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Receipt, User } from 'lucide-react';
+import { ShoppingCart, Receipt, User, Plus, Minus, Trash2 } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { generateSaleReceipt } from './PDFGenerator';
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: string;
@@ -13,13 +15,20 @@ interface Product {
   category: string;
 }
 
+interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
 const SalesInterface = () => {
   const [selectedProduct, setSelectedProduct] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [buyerName, setBuyerName] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
   const { userProfile } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -38,50 +47,121 @@ const SalesInterface = () => {
     fetchProducts();
   }, []);
 
+  const addToCart = () => {
+    if (!selectedProduct) return;
+    
+    const product = products.find(p => p.id === selectedProduct);
+    if (!product) return;
+
+    const existingCartItem = cart.find(item => item.product.id === selectedProduct);
+    
+    if (existingCartItem) {
+      if (existingCartItem.quantity + quantity > product.stock) {
+        toast({
+          title: "Error",
+          description: "Not enough stock available",
+          variant: "destructive"
+        });
+        return;
+      }
+      setCart(cart.map(item => 
+        item.product.id === selectedProduct 
+          ? { ...item, quantity: item.quantity + quantity }
+          : item
+      ));
+    } else {
+      if (quantity > product.stock) {
+        toast({
+          title: "Error",
+          description: "Not enough stock available",
+          variant: "destructive"
+        });
+        return;
+      }
+      setCart([...cart, { product, quantity }]);
+    }
+
+    setSelectedProduct('');
+    setQuantity(1);
+  };
+
+  const updateQuantity = (productId: string, newQuantity: number) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    if (newQuantity > product.stock) {
+      toast({
+        title: "Error",
+        description: "Not enough stock available",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (newQuantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+
+    setCart(cart.map(item => 
+      item.product.id === productId 
+        ? { ...item, quantity: newQuantity }
+        : item
+    ));
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart(cart.filter(item => item.product.id !== productId));
+  };
+
   const handleSale = async () => {
-    if (!selectedProduct || !userProfile) return;
+    if (cart.length === 0 || !userProfile) return;
     
     setLoading(true);
     try {
-      const selectedProductData = products.find(p => p.id === selectedProduct);
-      if (!selectedProductData) return;
-
-      const totalPrice = selectedProductData.price * quantity;
       const saleTimestamp = new Date();
+      
+      // Process each item in cart
+      for (const cartItem of cart) {
+        const totalPrice = cartItem.product.price * cartItem.quantity;
 
-      // Add sale record to Firebase
-      await addDoc(collection(db, 'sales'), {
-        productId: selectedProduct,
-        productName: selectedProductData.name,
-        quantity,
-        unitPrice: selectedProductData.price,
-        totalPrice,
-        buyerName: buyerName || 'Walk-in Customer',
-        sellerId: userProfile.uid,
-        sellerName: userProfile.name,
-        timestamp: saleTimestamp,
-        date: saleTimestamp.toISOString().split('T')[0]
-      });
+        // Add sale record to Firebase
+        await addDoc(collection(db, 'sales'), {
+          productId: cartItem.product.id,
+          productName: cartItem.product.name,
+          category: cartItem.product.category,
+          quantity: cartItem.quantity,
+          unitPrice: cartItem.product.price,
+          totalPrice,
+          buyerName: buyerName || 'Walk-in Customer',
+          sellerId: userProfile.uid,
+          sellerName: userProfile.name,
+          timestamp: saleTimestamp,
+          date: saleTimestamp.toISOString().split('T')[0]
+        });
 
-      // Update product stock
-      const productRef = doc(db, 'products', selectedProduct);
-      await updateDoc(productRef, {
-        stock: selectedProductData.stock - quantity
-      });
+        // Update product stock
+        const productRef = doc(db, 'products', cartItem.product.id);
+        await updateDoc(productRef, {
+          stock: cartItem.product.stock - cartItem.quantity
+        });
+      }
 
-      // Generate PDF receipt
+      // Generate PDF receipt for all items
       generateSaleReceipt({
-        productName: selectedProductData.name,
-        quantity,
-        unitPrice: selectedProductData.price,
-        totalPrice,
+        items: cart.map(item => ({
+          productName: item.product.name,
+          quantity: item.quantity,
+          unitPrice: item.product.price,
+          totalPrice: item.product.price * item.quantity
+        })),
         buyerName: buyerName || 'Walk-in Customer',
-        timestamp: saleTimestamp
+        timestamp: saleTimestamp,
+        totalAmount: cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
       }, userProfile);
 
       // Reset form
-      setSelectedProduct('');
-      setQuantity(1);
+      setCart([]);
       setBuyerName('');
 
       // Refresh products to show updated stock
@@ -92,17 +172,24 @@ const SalesInterface = () => {
       })) as Product[];
       setProducts(productsData);
 
-      alert('Sale processed successfully and receipt generated!');
+      toast({
+        title: "Success",
+        description: "Sale processed successfully and receipt generated!"
+      });
     } catch (error) {
       console.error('Error processing sale:', error);
-      alert('Error processing sale. Please try again.');
+      toast({
+        title: "Error",
+        description: "Error processing sale. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const selectedProductData = products.find(p => p.id === selectedProduct);
-  const totalPrice = selectedProductData ? selectedProductData.price * quantity : 0;
+  const cartTotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -130,19 +217,75 @@ const SalesInterface = () => {
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Quantity
-          </label>
-          <input
-            type="number"
-            min="1"
-            max={selectedProductData?.stock || 1}
-            value={quantity}
-            onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+        <div className="grid grid-cols-3 gap-2">
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Quantity
+            </label>
+            <input
+              type="number"
+              min="1"
+              max={selectedProductData?.stock || 1}
+              value={quantity}
+              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={addToCart}
+              disabled={!selectedProduct}
+              className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+            >
+              <Plus size={16} className="mr-1" />
+              Add
+            </button>
+          </div>
         </div>
+
+        {cart.length > 0 && (
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-3">Shopping Cart</h4>
+            <div className="space-y-2">
+              {cart.map((item) => (
+                <div key={item.product.id} className="flex items-center justify-between bg-white p-2 rounded">
+                  <div className="flex-1">
+                    <span className="font-medium">{item.product.name}</span>
+                    <span className="text-sm text-gray-600 ml-2">${item.product.price}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                      className="p-1 bg-gray-200 rounded hover:bg-gray-300"
+                    >
+                      <Minus size={12} />
+                    </button>
+                    <span className="px-2">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                      className="p-1 bg-gray-200 rounded hover:bg-gray-300"
+                    >
+                      <Plus size={12} />
+                    </button>
+                    <button
+                      onClick={() => removeFromCart(item.product.id)}
+                      className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                    <span className="font-semibold min-w-[60px] text-right">
+                      ${(item.product.price * item.quantity).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <div className="border-t pt-2 flex justify-between font-semibold text-lg">
+                <span>Total:</span>
+                <span>${cartTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -160,38 +303,14 @@ const SalesInterface = () => {
           </div>
         </div>
 
-        {selectedProductData && (
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-medium text-gray-900 mb-2">Sale Summary</h4>
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span>Product:</span>
-                <span>{selectedProductData.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Unit Price:</span>
-                <span>${selectedProductData.price}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Quantity:</span>
-                <span>{quantity}</span>
-              </div>
-              <div className="flex justify-between font-semibold text-lg border-t pt-2">
-                <span>Total:</span>
-                <span>${totalPrice}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="flex space-x-3">
           <button
             onClick={handleSale}
-            disabled={!selectedProduct || loading}
+            disabled={cart.length === 0 || loading}
             className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
           >
             <ShoppingCart size={16} className="mr-2" />
-            {loading ? 'Processing...' : 'Process Sale'}
+            {loading ? 'Processing...' : `Process Sale ($${cartTotal.toFixed(2)})`}
           </button>
         </div>
       </div>

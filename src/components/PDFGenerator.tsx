@@ -1,14 +1,22 @@
 
 import { jsPDF } from 'jspdf';
-import { useAuth } from '../contexts/AuthContext';
 
-interface SaleData {
+interface SaleItem {
   productName: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+}
+
+interface SaleData {
+  items?: SaleItem[];
+  productName?: string;
+  quantity?: number;
+  unitPrice?: number;
+  totalPrice?: number;
   buyerName: string;
   timestamp: Date;
+  totalAmount?: number;
 }
 
 export const generateSaleReceipt = (saleData: SaleData, userProfile: any) => {
@@ -27,7 +35,7 @@ export const generateSaleReceipt = (saleData: SaleData, userProfile: any) => {
   doc.text(`Receipt Date: ${saleData.timestamp.toLocaleDateString()}`, 20, 70);
   doc.text(`Receipt Time: ${saleData.timestamp.toLocaleTimeString()}`, 20, 80);
   doc.text(`Seller: ${userProfile?.name || 'N/A'}`, 20, 90);
-  doc.text(`Customer: ${saleData.buyerName || 'Walk-in Customer'}`, 20, 100);
+  doc.text(`Customer: ${saleData.buyerName}`, 20, 100);
   
   // Line separator
   doc.line(20, 110, 190, 110);
@@ -45,23 +53,44 @@ export const generateSaleReceipt = (saleData: SaleData, userProfile: any) => {
   // Line under header
   doc.line(20, 145, 190, 145);
   
-  // Product details
-  doc.text(saleData.productName, 20, 160);
-  doc.text(saleData.quantity.toString(), 80, 160);
-  doc.text(`Br${saleData.unitPrice.toFixed(2)}`, 110, 160);
-  doc.text(`Br${saleData.totalPrice.toFixed(2)}`, 150, 160);
+  let yPosition = 160;
+  let grandTotal = 0;
+  
+  // Handle multiple items or single item
+  if (saleData.items && saleData.items.length > 0) {
+    // Multiple items
+    saleData.items.forEach((item) => {
+      doc.text(item.productName, 20, yPosition);
+      doc.text(item.quantity.toString(), 80, yPosition);
+      doc.text(`$${item.unitPrice.toFixed(2)}`, 110, yPosition);
+      doc.text(`$${item.totalPrice.toFixed(2)}`, 150, yPosition);
+      grandTotal += item.totalPrice;
+      yPosition += 15;
+    });
+  } else {
+    // Single item (backward compatibility)
+    doc.text(saleData.productName || '', 20, yPosition);
+    doc.text((saleData.quantity || 0).toString(), 80, yPosition);
+    doc.text(`$${(saleData.unitPrice || 0).toFixed(2)}`, 110, yPosition);
+    doc.text(`$${(saleData.totalPrice || 0).toFixed(2)}`, 150, yPosition);
+    grandTotal = saleData.totalPrice || 0;
+    yPosition += 15;
+  }
   
   // Total line
-  doc.line(20, 170, 190, 170);
+  doc.line(20, yPosition, 190, yPosition);
+  yPosition += 15;
   
   // Total amount
   doc.setFontSize(14);
-  doc.text(`TOTAL AMOUNT: Br${saleData.totalPrice.toFixed(2)}`, 105, 185, { align: 'center' });
+  const finalTotal = saleData.totalAmount || grandTotal;
+  doc.text(`TOTAL AMOUNT: $${finalTotal.toFixed(2)}`, 105, yPosition, { align: 'center' });
   
   // Footer
+  yPosition += 25;
   doc.setFontSize(10);
-  doc.text('Thank you for your business!', 105, 210, { align: 'center' });
-  doc.text('Visit us again soon!', 105, 220, { align: 'center' });
+  doc.text('Thank you for your business!', 105, yPosition, { align: 'center' });
+  doc.text('Visit us again soon!', 105, yPosition + 10, { align: 'center' });
   
   // Save the PDF
   const filename = `receipt_${Date.now()}.pdf`;

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingCart, Package, Filter } from 'lucide-react';
+import { Search, ShoppingCart, Package, Filter, Plus, Minus, Trash2 } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,13 +15,17 @@ interface Product {
   category: string;
 }
 
+interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
 const QuickSale = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [buyerName, setBuyerName] = useState('');
   const [loading, setLoading] = useState(false);
   const { userProfile } = useAuth();
@@ -82,62 +86,106 @@ const QuickSale = () => {
     setFilteredProducts(filtered);
   };
 
-  const handleProductSelect = (product: Product) => {
-    setSelectedProduct(product);
-    setQuantity(1);
+  const addToCart = (product: Product) => {
+    const existingCartItem = cart.find(item => item.product.id === product.id);
+    
+    if (existingCartItem) {
+      if (existingCartItem.quantity + 1 > product.stock) {
+        toast({
+          title: "Error",
+          description: "Not enough stock available",
+          variant: "destructive"
+        });
+        return;
+      }
+      setCart(cart.map(item => 
+        item.product.id === product.id 
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      ));
+    } else {
+      setCart([...cart, { product, quantity: 1 }]);
+    }
   };
 
-  const handleSale = async () => {
-    if (!selectedProduct || !userProfile) return;
-    
-    if (quantity > selectedProduct.stock) {
+  const updateQuantity = (productId: string, newQuantity: number) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    if (newQuantity > product.stock) {
       toast({
         title: "Error",
-        description: "Insufficient stock available",
+        description: "Not enough stock available",
         variant: "destructive"
       });
       return;
     }
 
+    if (newQuantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+
+    setCart(cart.map(item => 
+      item.product.id === productId 
+        ? { ...item, quantity: newQuantity }
+        : item
+    ));
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart(cart.filter(item => item.product.id !== productId));
+  };
+
+  const handleSale = async () => {
+    if (cart.length === 0 || !userProfile) return;
+    
     setLoading(true);
     try {
-      const totalPrice = selectedProduct.price * quantity;
       const saleTimestamp = new Date();
+      
+      // Process each item in cart
+      for (const cartItem of cart) {
+        const totalPrice = cartItem.product.price * cartItem.quantity;
 
-      // Add sale record
-      await addDoc(collection(db, 'sales'), {
-        productId: selectedProduct.id,
-        productName: selectedProduct.name,
-        quantity,
-        unitPrice: selectedProduct.price,
-        totalPrice,
-        buyerName: buyerName || 'Walk-in Customer',
-        sellerId: userProfile.uid,
-        sellerName: userProfile.name,
-        timestamp: saleTimestamp,
-        date: saleTimestamp.toISOString().split('T')[0]
-      });
+        // Add sale record
+        await addDoc(collection(db, 'sales'), {
+          productId: cartItem.product.id,
+          productName: cartItem.product.name,
+          category: cartItem.product.category,
+          quantity: cartItem.quantity,
+          unitPrice: cartItem.product.price,
+          totalPrice,
+          buyerName: buyerName || 'Walk-in Customer',
+          sellerId: userProfile.uid,
+          sellerName: userProfile.name,
+          timestamp: saleTimestamp,
+          date: saleTimestamp.toISOString().split('T')[0]
+        });
 
-      // Update product stock
-      const productRef = doc(db, 'products', selectedProduct.id);
-      await updateDoc(productRef, {
-        stock: selectedProduct.stock - quantity,
-        updatedAt: new Date()
-      });
+        // Update product stock
+        const productRef = doc(db, 'products', cartItem.product.id);
+        await updateDoc(productRef, {
+          stock: cartItem.product.stock - cartItem.quantity,
+          updatedAt: new Date()
+        });
+      }
 
-      // Generate PDF receipt
+      // Generate PDF receipt for all items
       generateSaleReceipt({
-        productName: selectedProduct.name,
-        quantity,
-        unitPrice: selectedProduct.price,
-        totalPrice,
+        items: cart.map(item => ({
+          productName: item.product.name,
+          quantity: item.quantity,
+          unitPrice: item.product.price,
+          totalPrice: item.product.price * item.quantity
+        })),
         buyerName: buyerName || 'Walk-in Customer',
-        timestamp: saleTimestamp
+        timestamp: saleTimestamp,
+        totalAmount: cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
       }, userProfile);
 
       // Reset and refresh
-      setSelectedProduct(null);
-      setQuantity(1);
+      setCart([]);
       setBuyerName('');
       fetchProducts();
 
@@ -157,6 +205,8 @@ const QuickSale = () => {
       setLoading(false);
     }
   };
+
+  const cartTotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -202,12 +252,7 @@ const QuickSale = () => {
           {filteredProducts.map((product) => (
             <div
               key={product.id}
-              onClick={() => handleProductSelect(product)}
-              className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                selectedProduct?.id === product.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              }`}
+              className="p-3 border rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
             >
               <div className="flex justify-between items-center">
                 <div>
@@ -217,6 +262,12 @@ const QuickSale = () => {
                 <div className="text-right">
                   <p className="font-semibold text-gray-900">${product.price}</p>
                   <p className="text-sm text-gray-500">Stock: {product.stock}</p>
+                  <button
+                    onClick={() => addToCart(product)}
+                    className="mt-1 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors"
+                  >
+                    Add to Cart
+                  </button>
                 </div>
               </div>
             </div>
@@ -234,31 +285,47 @@ const QuickSale = () => {
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <div className="flex items-center mb-4">
           <ShoppingCart className="text-green-600 mr-3" size={24} />
-          <h3 className="text-lg font-semibold text-gray-900">Process Sale</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Cart & Checkout</h3>
         </div>
 
-        {selectedProduct ? (
+        {cart.length > 0 ? (
           <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-medium text-gray-900 mb-2">Selected Product</h4>
-              <p className="text-sm text-gray-600">Name: {selectedProduct.name}</p>
-              <p className="text-sm text-gray-600">Category: {selectedProduct.category}</p>
-              <p className="text-sm text-gray-600">Price: ${selectedProduct.price}</p>
-              <p className="text-sm text-gray-600">Available Stock: {selectedProduct.stock}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Quantity
-              </label>
-              <input
-                type="number"
-                min="1"
-                max={selectedProduct.stock}
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+            <div className="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto">
+              <h4 className="font-medium text-gray-900 mb-3">Items in Cart</h4>
+              <div className="space-y-2">
+                {cart.map((item) => (
+                  <div key={item.product.id} className="flex items-center justify-between bg-white p-2 rounded">
+                    <div className="flex-1">
+                      <span className="font-medium text-sm">{item.product.name}</span>
+                      <span className="text-xs text-gray-600 block">${item.product.price} each</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                        className="p-1 bg-gray-200 rounded hover:bg-gray-300"
+                      >
+                        <Minus size={10} />
+                      </button>
+                      <span className="px-2 text-sm">{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                        className="p-1 bg-gray-200 rounded hover:bg-gray-300"
+                      >
+                        <Plus size={10} />
+                      </button>
+                      <button
+                        onClick={() => removeFromCart(item.product.id)}
+                        className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200 ml-1"
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                      <span className="font-semibold text-sm min-w-[50px] text-right">
+                        ${(item.product.price * item.quantity).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -278,7 +345,7 @@ const QuickSale = () => {
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-gray-900">Total Amount:</span>
                 <span className="text-xl font-bold text-blue-600">
-                  ${(selectedProduct.price * quantity).toFixed(2)}
+                  ${cartTotal.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -295,7 +362,7 @@ const QuickSale = () => {
         ) : (
           <div className="text-center py-12 text-gray-500">
             <Package size={48} className="mx-auto mb-4 text-gray-300" />
-            <p>Select a product from the list to process a sale</p>
+            <p>Add products to cart to process a sale</p>
           </div>
         )}
       </div>
