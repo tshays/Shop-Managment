@@ -189,7 +189,7 @@ const AddProductModal = ({ isOpen, onClose, onProductAdded }: AddProductModalPro
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Purchase Price ($) *
+              Purchase Price (birr) *
             </label>
             <input
               type="number"
@@ -234,7 +234,7 @@ const AddProductModal = ({ isOpen, onClose, onProductAdded }: AddProductModalPro
           </div>
 
           <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
-            <strong>Selling Price: ${(formData.purchasePrice + (formData.purchasePrice * formData.interestPercent / 100)).toFixed(2)}</strong>
+            <strong>Selling Price: birr{(formData.purchasePrice + (formData.purchasePrice * formData.interestPercent / 100)).toFixed(2)}</strong>
           </div>
 
           <div className="flex space-x-3 pt-4">
