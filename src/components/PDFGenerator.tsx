@@ -89,7 +89,7 @@ export const generateSaleReceipt = (saleData: SaleData, userProfile: any) => {
   // Footer
   yPosition += 25;
   doc.setFontSize(10);
-  doc.text('Thank you for your business!', 105, yPosition, { align: 'center' });
+  doc.text('Thank you for your Purchase!', 105, yPosition, { align: 'center' });
   doc.text('Visit us again soon!', 105, yPosition + 10, { align: 'center' });
   
   // Save the PDF
