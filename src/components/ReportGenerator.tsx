@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, Search, Filter, FileText, Download, Printer } from 'lucide-react';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
@@ -22,6 +21,7 @@ interface SaleRecord {
   sellerName: string;
   timestamp: any;
   date: string;
+  productId?: string;
 }
 
 interface CategorySummary {
@@ -29,6 +29,12 @@ interface CategorySummary {
   totalRevenue: number;
   totalQuantity: number;
   itemCount: number;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  category: string;
 }
 
 const ReportGenerator = () => {
@@ -41,6 +47,7 @@ const ReportGenerator = () => {
   const [itemSearch, setItemSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
 
@@ -55,22 +62,34 @@ const ReportGenerator = () => {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
+      // Fetch products first to get categories
+      const productsSnapshot = await getDocs(collection(db, 'products'));
+      const productsData = productsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Product[];
+      
+      setProducts(productsData);
+      const uniqueCategories = [...new Set(productsData.map(p => p.category).filter(Boolean))];
+      setCategories(uniqueCategories);
+
       // Fetch all sales records
       const salesSnapshot = await getDocs(
         query(collection(db, 'sales'), orderBy('timestamp', 'desc'))
       );
-      const salesData = salesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as SaleRecord[];
-
-      // Fetch products to get categories
-      const productsSnapshot = await getDocs(collection(db, 'products'));
-      const products = productsSnapshot.docs.map(doc => doc.data());
-      const uniqueCategories = [...new Set(products.map(p => p.category).filter(Boolean))];
+      const salesData = salesSnapshot.docs.map(doc => {
+        const saleData = { id: doc.id, ...doc.data() } as SaleRecord;
+        
+        // Find the product to get its category
+        const product = productsData.find(p => p.name === saleData.productName || p.id === saleData.productId);
+        if (product && product.category) {
+          saleData.category = product.category;
+        }
+        
+        return saleData;
+      });
 
       setSalesRecords(salesData);
-      setCategories(uniqueCategories);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
