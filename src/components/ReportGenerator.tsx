@@ -241,23 +241,25 @@ const ReportGenerator = () => {
   const totalQuantity = filteredRecords.reduce((sum, record) => sum + record.quantity, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-2 sm:p-4 lg:p-0">
       {/* Filter Controls */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Report Filters</h3>
+      <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-lg shadow-sm border">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Report Filters</h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-4">
           {/* Start Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+          <div className="space-y-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700">From Date</label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "PPP") : "Select start date"}
+                <Button variant="outline" className="w-full justify-start text-left font-normal h-9 sm:h-10 text-xs sm:text-sm">
+                  <Calendar className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="truncate">
+                    {startDate ? format(startDate, "MMM dd, yyyy") : "Select start date"}
+                  </span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <CalendarComponent
                   mode="single"
                   selected={startDate}
@@ -269,16 +271,18 @@ const ReportGenerator = () => {
           </div>
 
           {/* End Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+          <div className="space-y-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700">To Date</label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "PPP") : "Select end date"}
+                <Button variant="outline" className="w-full justify-start text-left font-normal h-9 sm:h-10 text-xs sm:text-sm">
+                  <Calendar className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="truncate">
+                    {endDate ? format(endDate, "MMM dd, yyyy") : "Select end date"}
+                  </span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <CalendarComponent
                   mode="single"
                   selected={endDate}
@@ -290,29 +294,29 @@ const ReportGenerator = () => {
           </div>
 
           {/* Item Search */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Search Item</label>
+          <div className="space-y-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700">Search Item</label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
               <input
                 type="text"
                 value={itemSearch}
                 onChange={(e) => setItemSearch(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Search by product name"
+                className="w-full pl-8 sm:pl-10 pr-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 sm:h-10"
+                placeholder="Search products..."
               />
             </div>
           </div>
 
           {/* Category Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+          <div className="space-y-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700">Category</label>
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <Filter className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-8 sm:pl-10 pr-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 sm:h-10 bg-white"
               >
                 <option value="">All Categories</option>
                 {categories.map(category => (
@@ -323,26 +327,26 @@ const ReportGenerator = () => {
           </div>
         </div>
 
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <button
             onClick={handleGenerateReport}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium"
           >
-            <FileText size={16} className="mr-2" />
+            <FileText size={14} className="mr-2" />
             Generate Report
           </button>
           <button
             onClick={handlePrintReport}
-            className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            className="flex items-center justify-center px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium"
           >
-            <Printer size={16} className="mr-2" />
+            <Printer size={14} className="mr-2" />
             Print
           </button>
           <button
             onClick={handleExportCSV}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center justify-center px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm font-medium"
           >
-            <Download size={16} className="mr-2" />
+            <Download size={14} className="mr-2" />
             Export CSV
           </button>
         </div>
@@ -351,99 +355,111 @@ const ReportGenerator = () => {
       {/* Report Content */}
       <div id="report-content">
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h4 className="text-sm font-medium text-gray-600">Total Records</h4>
-            <p className="text-2xl font-bold text-gray-900">{filteredRecords.length}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+            <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Records</h4>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900">{filteredRecords.length}</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h4 className="text-sm font-medium text-gray-600">Total Revenue</h4>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+            <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Revenue</h4>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{formatCurrency(totalRevenue)}</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h4 className="text-sm font-medium text-gray-600">Items Sold</h4>
-            <p className="text-2xl font-bold text-gray-900">{totalQuantity}</p>
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border sm:col-span-2 lg:col-span-1">
+            <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Items Sold</h4>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalQuantity}</p>
           </div>
         </div>
 
         {/* Category Summary */}
         {categorySummary.length > 0 && (
-          <div className="bg-white p-6 rounded-lg shadow-sm border mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Category Summary</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Items Sold</TableHead>
-                  <TableHead>Total Quantity</TableHead>
-                  <TableHead>Revenue</TableHead>
-                  <TableHead>% of Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categorySummary.map((category) => (
-                  <TableRow key={category.category}>
-                    <TableCell className="font-medium">{category.category}</TableCell>
-                    <TableCell>{category.itemCount}</TableCell>
-                    <TableCell>{category.totalQuantity}</TableCell>
-                    <TableCell className="font-semibold">{formatCurrency(category.totalRevenue)}</TableCell>
-                    <TableCell>
-                      {totalRevenue > 0 ? ((category.totalRevenue / totalRevenue) * 100).toFixed(1) : 0}%
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-lg shadow-sm border mb-4 sm:mb-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Category Summary</h3>
+            <div className="overflow-x-auto -mx-3 sm:-mx-4 lg:-mx-6">
+              <div className="inline-block min-w-full px-3 sm:px-4 lg:px-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Category</TableHead>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Items Sold</TableHead>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Total Qty</TableHead>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Revenue</TableHead>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">% of Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {categorySummary.map((category) => (
+                      <TableRow key={category.category}>
+                        <TableCell className="font-medium text-xs sm:text-sm whitespace-nowrap">{category.category}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{category.itemCount}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{category.totalQuantity}</TableCell>
+                        <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">{formatCurrency(category.totalRevenue)}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          {totalRevenue > 0 ? ((category.totalRevenue / totalRevenue) * 100).toFixed(1) : 0}%
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Detailed Records */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Detailed Records</h3>
+        <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-lg shadow-sm border">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Detailed Records</h3>
           {loading ? (
             <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600"></div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Unit Price</TableHead>
-                    <TableHead>Total Price</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Seller</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRecords.length > 0 ? (
-                    filteredRecords.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell>
-                          {new Date(record.timestamp?.toDate?.() || record.timestamp).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="font-medium">{record.productName}</TableCell>
-                        <TableCell>{record.category || 'Uncategorized'}</TableCell>
-                        <TableCell>{record.quantity}</TableCell>
-                        <TableCell>{formatCurrency(record.unitPrice)}</TableCell>
-                        <TableCell className="font-semibold">{formatCurrency(record.totalPrice)}</TableCell>
-                        <TableCell>{record.buyerName || 'Walk-in Customer'}</TableCell>
-                        <TableCell>{record.sellerName}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
+            <div className="overflow-x-auto -mx-3 sm:-mx-4 lg:-mx-6">
+              <div className="inline-block min-w-full px-3 sm:px-4 lg:px-6">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                        No records found matching your criteria
-                      </TableCell>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Date</TableHead>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Product</TableHead>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Category</TableHead>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Qty</TableHead>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Unit Price</TableHead>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Total Price</TableHead>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Customer</TableHead>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Seller</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRecords.length > 0 ? (
+                      filteredRecords.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell className="text-xs sm:text-sm whitespace-nowrap">
+                            {new Date(record.timestamp?.toDate?.() || record.timestamp).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="font-medium text-xs sm:text-sm max-w-[120px] sm:max-w-none truncate" title={record.productName}>
+                            {record.productName}
+                          </TableCell>
+                          <TableCell className="text-xs sm:text-sm whitespace-nowrap">{record.category || 'Uncategorized'}</TableCell>
+                          <TableCell className="text-xs sm:text-sm">{record.quantity}</TableCell>
+                          <TableCell className="text-xs sm:text-sm whitespace-nowrap">{formatCurrency(record.unitPrice)}</TableCell>
+                          <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">{formatCurrency(record.totalPrice)}</TableCell>
+                          <TableCell className="text-xs sm:text-sm max-w-[100px] sm:max-w-none truncate" title={record.buyerName || 'Walk-in Customer'}>
+                            {record.buyerName || 'Walk-in Customer'}
+                          </TableCell>
+                          <TableCell className="text-xs sm:text-sm max-w-[100px] sm:max-w-none truncate" title={record.sellerName}>
+                            {record.sellerName}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-gray-500 text-xs sm:text-sm">
+                          No records found matching your criteria
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </div>
