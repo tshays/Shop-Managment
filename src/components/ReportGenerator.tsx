@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Search, Filter, FileText, Download, Printer } from 'lucide-react';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -22,6 +22,7 @@ interface SaleRecord {
   timestamp: any;
   date: string;
   productId?: string;
+  paymentMethod?: string;
 }
 
 interface CategorySummary {
@@ -46,6 +47,7 @@ const ReportGenerator = () => {
   const [endDate, setEndDate] = useState<Date>();
   const [itemSearch, setItemSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const { formatCurrency } = useCurrency();
@@ -55,9 +57,8 @@ const ReportGenerator = () => {
     fetchInitialData();
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-  }, [salesRecords, startDate, endDate, itemSearch, categoryFilter]);
+  // Removed automatic filtering on filter changes
+  // Filters will apply only on button click
 
   const fetchInitialData = async () => {
     setLoading(true);
@@ -105,14 +106,16 @@ const ReportGenerator = () => {
   const applyFilters = () => {
     let filtered = [...salesRecords];
 
-    // Filter by date range
-    if (startDate || endDate) {
+    // Filter by date range only if both dates are set
+    if (startDate && endDate) {
       filtered = filtered.filter(record => {
         const recordDate = record.timestamp?.toDate ? record.timestamp.toDate() : new Date(record.timestamp);
-        if (startDate && recordDate < startDate) return false;
-        if (endDate && recordDate > endDate) return false;
-        return true;
+        // Include records between startDate and endDate (inclusive)
+        return recordDate >= startDate && recordDate <= endDate;
       });
+    } else {
+      // If either date missing, show no results to avoid confusion
+      filtered = [];
     }
 
     // Filter by item name
@@ -125,6 +128,11 @@ const ReportGenerator = () => {
     // Filter by category
     if (categoryFilter) {
       filtered = filtered.filter(record => record.category === categoryFilter);
+    }
+
+    // Filter by payment method
+    if (paymentMethodFilter) {
+      filtered = filtered.filter(record => record.paymentMethod === paymentMethodFilter);
     }
 
     setFilteredRecords(filtered);
@@ -156,10 +164,18 @@ const ReportGenerator = () => {
   };
 
   const handleGenerateReport = () => {
+    if (!startDate || !endDate) {
+      toast({
+        title: "Date Range Required",
+        description: "Please select both start and end dates before generating the report.",
+        variant: "destructive",
+      });
+      return;
+    }
     applyFilters();
     toast({
       title: "Report Generated",
-      description: `Found ${filteredRecords.length} records matching your criteria`
+      description: `Found ${filteredRecords.length} records matching your criteria`,
     });
   };
 
@@ -204,7 +220,7 @@ const ReportGenerator = () => {
   };
 
   const handleExportCSV = () => {
-    const csvHeaders = ['Date', 'Product', 'Category', 'Quantity', 'Unit Price', 'Total Price', 'Customer', 'Seller'];
+    const csvHeaders = ['Date', 'Product', 'Category', 'Quantity', 'Unit Price', 'Total Price', 'Customer', 'Seller', 'Payment Method'];
     const csvRows = filteredRecords.map(record => [
       new Date(record.timestamp?.toDate?.() || record.timestamp).toLocaleDateString(),
       record.productName,
@@ -213,7 +229,27 @@ const ReportGenerator = () => {
       record.unitPrice,
       record.totalPrice,
       record.buyerName || 'Walk-in Customer',
-      record.sellerName
+      record.sellerName,
+      record.paymentMethod || 'N/A',
+    ]);
+
+    // Calculate totals for quantity and revenue
+    const totalQuantity = filteredRecords.reduce((sum, record) => sum + record.quantity, 0);
+    const totalRevenue = filteredRecords.reduce((sum, record) => sum + record.totalPrice, 0);
+
+    // Add empty row before totals
+    csvRows.push([]);
+    // Add totals row
+    csvRows.push([
+      'Totals',
+      '',
+      '',
+      totalQuantity,
+      '',
+      totalRevenue,
+      '',
+      '',
+      ''
     ]);
 
     const csvContent = [
@@ -230,7 +266,7 @@ const ReportGenerator = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     toast({
       title: "Success",
       description: "Report exported successfully!"
@@ -246,7 +282,7 @@ const ReportGenerator = () => {
       <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-lg shadow-sm border">
         <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Report Filters</h3>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 sm:gap-4 mb-4">
           {/* Start Date */}
           <div className="space-y-2">
             <label className="block text-xs sm:text-sm font-medium text-gray-700">From Date</label>
@@ -325,6 +361,27 @@ const ReportGenerator = () => {
               </select>
             </div>
           </div>
+
+          {/* Payment Method Filter */}
+          <div className="space-y-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700">Payment Method</label>
+            <select
+              value={paymentMethodFilter}
+              onChange={(e) => setPaymentMethodFilter(e.target.value)}
+              className="w-full pl-3 pr-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 sm:h-10 bg-white"
+            >
+              <option value="">All Payment Methods</option>
+              <option value="Cash">Cash</option>
+              <option value="CBE">CBE</option>
+              <option value="Abisiniya">Abisiniya</option>
+              <option value="Awash">Awash</option>
+              <option value="Wegagen">Wegagen</option>
+              <option value="E-birr">E-birr</option>
+              <option value="Tele Birr">Tele Birr</option>
+              <option value="Amhara Bank">Amhara Bank</option>
+              <option value="Oromia Bank">Oromia Bank</option>
+            </select>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
@@ -379,23 +436,19 @@ const ReportGenerator = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Category</TableHead>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Items Sold</TableHead>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Total Qty</TableHead>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Revenue</TableHead>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">% of Total</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Total Revenue</TableHead>
+                      <TableHead>Items Sold</TableHead>
+                      <TableHead>Record Count</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {categorySummary.map((category) => (
-                      <TableRow key={category.category}>
-                        <TableCell className="font-medium text-xs sm:text-sm whitespace-nowrap">{category.category}</TableCell>
-                        <TableCell className="text-xs sm:text-sm">{category.itemCount}</TableCell>
-                        <TableCell className="text-xs sm:text-sm">{category.totalQuantity}</TableCell>
-                        <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">{formatCurrency(category.totalRevenue)}</TableCell>
-                        <TableCell className="text-xs sm:text-sm">
-                          {totalRevenue > 0 ? ((category.totalRevenue / totalRevenue) * 100).toFixed(1) : 0}%
-                        </TableCell>
+                    {categorySummary.map(summary => (
+                      <TableRow key={summary.category}>
+                        <TableCell>{summary.category}</TableCell>
+                        <TableCell>{formatCurrency(summary.totalRevenue)}</TableCell>
+                        <TableCell>{summary.totalQuantity}</TableCell>
+                        <TableCell>{summary.itemCount}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -405,68 +458,43 @@ const ReportGenerator = () => {
           </div>
         )}
 
-        {/* Detailed Records */}
+        {/* Sales Records Table */}
         <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-lg shadow-sm border">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Detailed Records</h3>
-          {loading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600"></div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto -mx-3 sm:-mx-4 lg:-mx-6">
-              <div className="inline-block min-w-full px-3 sm:px-4 lg:px-6">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Date</TableHead>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Product</TableHead>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Category</TableHead>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Qty</TableHead>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Unit Price</TableHead>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Total Price</TableHead>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Customer</TableHead>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Seller</TableHead>
-                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Payment Method</TableHead>
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Sales Records</h3>
+          <div className="overflow-x-auto -mx-3 sm:-mx-4 lg:-mx-6">
+            <div className="inline-block min-w-full px-3 sm:px-4 lg:px-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <TableHead>Unit Price</TableHead>
+                    <TableHead>Total Price</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Seller</TableHead>
+                    <TableHead>Payment Method</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRecords.map(record => (
+                    <TableRow key={record.id}>
+                      <TableCell>{new Date(record.timestamp?.toDate?.() || record.timestamp).toLocaleDateString()}</TableCell>
+                      <TableCell>{record.productName}</TableCell>
+                      <TableCell>{record.category || 'Uncategorized'}</TableCell>
+                      <TableCell>{record.quantity}</TableCell>
+                      <TableCell>{formatCurrency(record.unitPrice)}</TableCell>
+                      <TableCell>{formatCurrency(record.totalPrice)}</TableCell>
+                      <TableCell>{record.buyerName || 'Walk-in Customer'}</TableCell>
+                      <TableCell>{record.sellerName}</TableCell>
+                      <TableCell>{record.paymentMethod || 'N/A'}</TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredRecords.length > 0 ? (
-                      filteredRecords.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell className="text-xs sm:text-sm whitespace-nowrap">
-                            {new Date(record.timestamp?.toDate?.() || record.timestamp).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="font-medium text-xs sm:text-sm max-w-[120px] sm:max-w-none truncate" title={record.productName}>
-                            {record.productName}
-                          </TableCell>
-                          <TableCell className="text-xs sm:text-sm whitespace-nowrap">{record.category || 'Uncategorized'}</TableCell>
-                          <TableCell className="text-xs sm:text-sm">{record.quantity}</TableCell>
-                          <TableCell className="text-xs sm:text-sm whitespace-nowrap">{formatCurrency(record.unitPrice)}</TableCell>
-                          <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">{formatCurrency(record.totalPrice)}</TableCell>
-                          <TableCell className="text-xs sm:text-sm max-w-[100px] sm:max-w-none truncate" title={record.buyerName || 'Walk-in Customer'}>
-                            {record.buyerName || 'Walk-in Customer'}
-                          </TableCell>
-                          <TableCell className="text-xs sm:text-sm max-w-[100px] sm:max-w-none truncate" title={record.sellerName}>
-                            {record.sellerName}
-                          </TableCell>
-                          <TableCell className="text-xs sm:text-sm max-w-[100px] sm:max-w-none truncate" title={record.paymentMethod}>
-  {record.paymentMethod || 'N/A'}
-</TableCell>
-
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-gray-500 text-xs sm:text-sm">
-                          No records found matching your criteria
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
