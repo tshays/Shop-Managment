@@ -37,7 +37,7 @@ const QuickSale = () => {
     'Covers', 'Chargers', 'Electrical Tools'
   ];
 
-  const paymentMethods = ['Cash', 'Card', 'Mobile Money', 'Bank Transfer'];
+  const paymentMethods = ['CBE Mobile Banking', 'Telebirr', 'Amhara Bank', 'Awash Bank', 'Wegagen Bank', 'Oromia Bank', 'Abisiniya Bank', 'Other'];
 
   useEffect(() => {
     fetchProducts();
