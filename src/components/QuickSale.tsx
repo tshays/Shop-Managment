@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, ShoppingCart, Package, Filter, Plus, Minus, Trash2 } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
@@ -27,22 +26,18 @@ const QuickSale = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [buyerName, setBuyerName] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [loading, setLoading] = useState(false);
   const { userProfile } = useAuth();
   const { toast } = useToast();
 
   const categories = [
-    'Mobiles',
-    'Smart Phones', 
-    'Non-Smart Phones',
-    'Laptops',
-    'Computers & Desktops',
-    'Mobile Accessories',
-    'Glasses',
-    'Covers',
-    'Chargers',
-    'Electrical Tools'
+    'Mobiles', 'Smart Phones', 'Non-Smart Phones', 'Laptops',
+    'Computers & Desktops', 'Mobile Accessories', 'Glasses',
+    'Covers', 'Chargers', 'Electrical Tools'
   ];
+
+  const paymentMethods = ['Cash', 'Card', 'Mobile Money', 'Bank Transfer'];
 
   useEffect(() => {
     fetchProducts();
@@ -59,7 +54,7 @@ const QuickSale = () => {
         id: doc.id,
         ...doc.data()
       })) as Product[];
-      setProducts(productsData.filter(p => p.stock > 0)); // Only show products in stock
+      setProducts(productsData.filter(p => p.stock > 0));
     } catch (error) {
       console.error('Error fetching products:', error);
       toast({
@@ -88,7 +83,7 @@ const QuickSale = () => {
 
   const addToCart = (product: Product) => {
     const existingCartItem = cart.find(item => item.product.id === product.id);
-    
+
     if (existingCartItem) {
       if (existingCartItem.quantity + 1 > product.stock) {
         toast({
@@ -98,8 +93,8 @@ const QuickSale = () => {
         });
         return;
       }
-      setCart(cart.map(item => 
-        item.product.id === product.id 
+      setCart(cart.map(item =>
+        item.product.id === product.id
           ? { ...item, quantity: item.quantity + 1 }
           : item
       ));
@@ -126,8 +121,8 @@ const QuickSale = () => {
       return;
     }
 
-    setCart(cart.map(item => 
-      item.product.id === productId 
+    setCart(cart.map(item =>
+      item.product.id === productId
         ? { ...item, quantity: newQuantity }
         : item
     ));
@@ -139,16 +134,14 @@ const QuickSale = () => {
 
   const handleSale = async () => {
     if (cart.length === 0 || !userProfile) return;
-    
+
     setLoading(true);
     try {
       const saleTimestamp = new Date();
-      
-      // Process each item in cart
+
       for (const cartItem of cart) {
         const totalPrice = cartItem.product.price * cartItem.quantity;
 
-        // Add sale record
         await addDoc(collection(db, 'sales'), {
           productId: cartItem.product.id,
           productName: cartItem.product.name,
@@ -160,10 +153,10 @@ const QuickSale = () => {
           sellerId: userProfile.uid,
           sellerName: userProfile.name,
           timestamp: saleTimestamp,
-          date: saleTimestamp.toISOString().split('T')[0]
+          date: saleTimestamp.toISOString().split('T')[0],
+          paymentMethod
         });
 
-        // Update product stock
         const productRef = doc(db, 'products', cartItem.product.id);
         await updateDoc(productRef, {
           stock: cartItem.product.stock - cartItem.quantity,
@@ -171,7 +164,6 @@ const QuickSale = () => {
         });
       }
 
-      // Generate PDF receipt for all items
       generateSaleReceipt({
         items: cart.map(item => ({
           productName: item.product.name,
@@ -181,10 +173,10 @@ const QuickSale = () => {
         })),
         buyerName: buyerName || 'Walk-in Customer',
         timestamp: saleTimestamp,
-        totalAmount: cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
+        totalAmount: cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0),
+        paymentMethod
       }, userProfile);
 
-      // Reset and refresh
       setCart([]);
       setBuyerName('');
       fetchProducts();
@@ -210,14 +202,13 @@ const QuickSale = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Product Search Section */}
+      {/* Product Section */}
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <div className="flex items-center mb-4">
           <Package className="text-blue-600 mr-3" size={24} />
           <h3 className="text-lg font-semibold text-gray-900">Available Products</h3>
         </div>
 
-        {/* Search and Filter */}
         <div className="space-y-4 mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
@@ -226,16 +217,15 @@ const QuickSale = () => {
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
             />
           </div>
-          
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
             >
               <option value="">All Categories</option>
               {categories.map((category) => (
@@ -247,24 +237,20 @@ const QuickSale = () => {
           </div>
         </div>
 
-        {/* Products List */}
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="p-3 border rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
-            >
+            <div key={product.id} className="p-3 border rounded-lg hover:bg-gray-50">
               <div className="flex justify-between items-center">
                 <div>
-                  <h4 className="font-medium text-gray-900">{product.name}</h4>
+                  <h4 className="font-medium">{product.name}</h4>
                   <p className="text-sm text-gray-500">{product.category}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-gray-900">${product.price}</p>
+                  <p className="font-semibold">${product.price}</p>
                   <p className="text-sm text-gray-500">Stock: {product.stock}</p>
                   <button
                     onClick={() => addToCart(product)}
-                    className="mt-1 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors"
+                    className="mt-1 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
                   >
                     Add to Cart
                   </button>
@@ -272,7 +258,6 @@ const QuickSale = () => {
               </div>
             </div>
           ))}
-          
           {filteredProducts.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No products found matching your criteria
@@ -281,17 +266,17 @@ const QuickSale = () => {
         </div>
       </div>
 
-      {/* Sale Processing Section */}
+      {/* Cart Section */}
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <div className="flex items-center mb-4">
           <ShoppingCart className="text-green-600 mr-3" size={24} />
-          <h3 className="text-lg font-semibold text-gray-900">Cart & Checkout</h3>
+          <h3 className="text-lg font-semibold">Cart & Checkout</h3>
         </div>
 
         {cart.length > 0 ? (
           <div className="space-y-4">
             <div className="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto">
-              <h4 className="font-medium text-gray-900 mb-3">Items in Cart</h4>
+              <h4 className="font-medium mb-3">Items in Cart</h4>
               <div className="space-y-2">
                 {cart.map((item) => (
                   <div key={item.product.id} className="flex items-center justify-between bg-white p-2 rounded">
@@ -300,23 +285,14 @@ const QuickSale = () => {
                       <span className="text-xs text-gray-600 block">${item.product.price} each</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <button
-                        onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                        className="p-1 bg-gray-200 rounded hover:bg-gray-300"
-                      >
+                      <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="p-1 bg-gray-200 rounded">
                         <Minus size={10} />
                       </button>
                       <span className="px-2 text-sm">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                        className="p-1 bg-gray-200 rounded hover:bg-gray-300"
-                      >
+                      <button onClick={() => updateQuantity(item.product.id, item.quantity + 1)} className="p-1 bg-gray-200 rounded">
                         <Plus size={10} />
                       </button>
-                      <button
-                        onClick={() => removeFromCart(item.product.id)}
-                        className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200 ml-1"
-                      >
+                      <button onClick={() => removeFromCart(item.product.id)} className="p-1 bg-red-100 text-red-600 rounded ml-1">
                         <Trash2 size={10} />
                       </button>
                       <span className="font-semibold text-sm min-w-[50px] text-right">
@@ -329,31 +305,39 @@ const QuickSale = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Customer Name (Optional)
-              </label>
+              <label className="block text-sm font-medium mb-2">Customer Name (Optional)</label>
               <input
                 type="text"
                 value={buyerName}
                 onChange={(e) => setBuyerName(e.target.value)}
-                placeholder="Enter customer name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border rounded-lg"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Payment Method</label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg"
+              >
+                {paymentMethods.map(method => (
+                  <option key={method} value={method}>{method}</option>
+                ))}
+              </select>
             </div>
 
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-gray-900">Total Amount:</span>
-                <span className="text-xl font-bold text-blue-600">
-                  ${cartTotal.toFixed(2)}
-                </span>
+                <span className="font-semibold">Total Amount:</span>
+                <span className="text-xl font-bold text-blue-600">${cartTotal.toFixed(2)}</span>
               </div>
             </div>
 
             <button
               onClick={handleSale}
               disabled={loading}
-              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-300 flex items-center justify-center"
             >
               <ShoppingCart size={16} className="mr-2" />
               {loading ? 'Processing Sale...' : 'Complete Sale & Generate Receipt'}
