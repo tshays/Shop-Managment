@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Receipt, User, Plus, Minus, Trash2 } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
@@ -24,6 +23,7 @@ const SalesInterface = () => {
   const [selectedProduct, setSelectedProduct] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [buyerName, setBuyerName] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,12 +49,12 @@ const SalesInterface = () => {
 
   const addToCart = () => {
     if (!selectedProduct) return;
-    
+
     const product = products.find(p => p.id === selectedProduct);
     if (!product) return;
 
     const existingCartItem = cart.find(item => item.product.id === selectedProduct);
-    
+
     if (existingCartItem) {
       if (existingCartItem.quantity + quantity > product.stock) {
         toast({
@@ -64,8 +64,8 @@ const SalesInterface = () => {
         });
         return;
       }
-      setCart(cart.map(item => 
-        item.product.id === selectedProduct 
+      setCart(cart.map(item =>
+        item.product.id === selectedProduct
           ? { ...item, quantity: item.quantity + quantity }
           : item
       ));
@@ -103,8 +103,8 @@ const SalesInterface = () => {
       return;
     }
 
-    setCart(cart.map(item => 
-      item.product.id === productId 
+    setCart(cart.map(item =>
+      item.product.id === productId
         ? { ...item, quantity: newQuantity }
         : item
     ));
@@ -116,16 +116,14 @@ const SalesInterface = () => {
 
   const handleSale = async () => {
     if (cart.length === 0 || !userProfile) return;
-    
+
     setLoading(true);
     try {
       const saleTimestamp = new Date();
-      
-      // Process each item in cart
+
       for (const cartItem of cart) {
         const totalPrice = cartItem.product.price * cartItem.quantity;
 
-        // Add sale record to Firebase
         await addDoc(collection(db, 'sales'), {
           productId: cartItem.product.id,
           productName: cartItem.product.name,
@@ -136,18 +134,17 @@ const SalesInterface = () => {
           buyerName: buyerName || 'Walk-in Customer',
           sellerId: userProfile.uid,
           sellerName: userProfile.name,
+          paymentMethod,
           timestamp: saleTimestamp,
           date: saleTimestamp.toISOString().split('T')[0]
         });
 
-        // Update product stock
         const productRef = doc(db, 'products', cartItem.product.id);
         await updateDoc(productRef, {
           stock: cartItem.product.stock - cartItem.quantity
         });
       }
 
-      // Generate PDF receipt for all items
       generateSaleReceipt({
         items: cart.map(item => ({
           productName: item.product.name,
@@ -160,11 +157,9 @@ const SalesInterface = () => {
         totalAmount: cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
       }, userProfile);
 
-      // Reset form
       setCart([]);
       setBuyerName('');
 
-      // Refresh products to show updated stock
       const productsSnapshot = await getDocs(collection(db, 'products'));
       const productsData = productsSnapshot.docs.map(doc => ({
         id: doc.id,
@@ -240,6 +235,27 @@ const SalesInterface = () => {
               <Plus size={16} className="mr-1" />
               Add
             </button>
+          </div>
+
+          <div className="col-span-3">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Payment Method
+            </label>
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="Cash">Cash</option>
+              <option value="CBE Mobile Banking">CBE Mobile Banking</option>
+              <option value="Telebirr">Telebirr</option>
+              <option value="Amhara Bank">Amhara Bank</option>
+              <option value="Awash Bank">Awash Bank</option>
+              <option value="Wegagen Bank">Wegagen Bank</option>
+              <option value="Oromia Bank">Oromia Bank</option>
+              <option value="Abisiniya Bank">Abisiniya Bank</option>
+              <option value="Other">Other</option>
+            </select>
           </div>
         </div>
 
