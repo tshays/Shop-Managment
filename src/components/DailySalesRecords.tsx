@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Printer, Paperclip } from 'lucide-react';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -17,6 +16,7 @@ interface SaleRecord {
   sellerName: string;
   timestamp: any;
   date: string;
+  paymentMethod?: string;  // <-- added payment method to interface
 }
 
 const DailySalesRecords = () => {
@@ -94,7 +94,7 @@ const DailySalesRecords = () => {
 
   const handleAttachment = () => {
     // Create CSV content
-    const csvHeaders = ['Date', 'Product', 'Quantity', 'Unit Price', 'Total Price', 'Customer', 'Seller'];
+    const csvHeaders = ['Date', 'Product', 'Quantity', 'Unit Price', 'Total Price', 'Customer', 'Seller', 'Payment Method'];
     const csvRows = salesRecords.map(record => [
       new Date(record.timestamp?.toDate?.() || record.timestamp).toLocaleDateString(),
       record.productName,
@@ -102,7 +102,8 @@ const DailySalesRecords = () => {
       record.unitPrice,
       record.totalPrice,
       record.buyerName || 'Walk-in Customer',
-      record.sellerName
+      record.sellerName,
+      record.paymentMethod || 'N/A'  // <-- included payment method in export
     ]);
 
     const csvContent = [
@@ -170,6 +171,7 @@ const DailySalesRecords = () => {
               <TableHead>Total Price</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Seller</TableHead>
+              <TableHead>Payment Method</TableHead> {/* Added payment method header */}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -185,11 +187,12 @@ const DailySalesRecords = () => {
                   <TableCell className="font-semibold">{formatCurrency(record.totalPrice)}</TableCell>
                   <TableCell>{record.buyerName || 'Walk-in Customer'}</TableCell>
                   <TableCell>{record.sellerName}</TableCell>
+                  <TableCell>{record.paymentMethod || 'N/A'}</TableCell> {/* Added payment method cell */}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={8} className="text-center py-8 text-gray-500"> {/* Updated colspan */}
                   No sales records found
                 </TableCell>
               </TableRow>
