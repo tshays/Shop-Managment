@@ -426,6 +426,7 @@ const ReportGenerator = () => {
                       <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Total Price</TableHead>
                       <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Customer</TableHead>
                       <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Seller</TableHead>
+                      <TableHead className="text-xs sm:text-sm font-medium whitespace-nowrap">Payment Method</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -448,6 +449,10 @@ const ReportGenerator = () => {
                           <TableCell className="text-xs sm:text-sm max-w-[100px] sm:max-w-none truncate" title={record.sellerName}>
                             {record.sellerName}
                           </TableCell>
+                          <TableCell className="text-xs sm:text-sm max-w-[100px] sm:max-w-none truncate" title={record.paymentMethod}>
+  {record.paymentMethod || 'N/A'}
+</TableCell>
+
                         </TableRow>
                       ))
                     ) : (
